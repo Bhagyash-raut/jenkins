@@ -120,7 +120,6 @@ resource "aws_eks_node_group" "cbz_nodegroup" {
   ]
 }
 
-project            = "cbz"
 desired_nodes      = 2
 min_nodes          = 1
 max_nodes          = 3
