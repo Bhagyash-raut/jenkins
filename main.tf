@@ -119,8 +119,3 @@ resource "aws_eks_node_group" "cbz_nodegroup" {
     aws_iam_role_policy_attachment.ecr_readonly
   ]
 }
-
-desired_nodes      = 2
-min_nodes          = 1
-max_nodes          = 3
-node_instance_type = "c7i-flex.large"
