@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "ap-south-2"
+  region = "us-west-2"
 }
 
 # Create an IAM Role for the EKS Cluster
