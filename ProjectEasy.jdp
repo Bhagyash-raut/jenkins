@@ -1,0 +1,93 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('PULL') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Bhagyash-raut/EasyCRUD2.git'
+            }
+        }
+
+        stage('BUILD') {
+            steps {
+                dir('backend') {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Docker Build Backend') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        docker build -t bhagyash654/eproject:backend  .
+                        echo "image build for Backend"
+                        docker push bhagyash654/eproject:backend
+
+                    '''
+                }
+            }
+        }
+        stage('Backend-ready') {
+            steps {
+                dir('simple-deploy') {
+                    sh '''
+                        sed -i 's|image-name|bhagyash654/eproject:backend|g' backend-pod.yaml
+                        kubectl apply -f backend-pod.yaml
+                    '''
+                }
+            }
+        }
+        //service will be created
+        stage('Update Frontend .env') {
+            steps {
+                 dir('frontend') {
+                     sh '''
+                          NODE_IP=$(kubectl get nodes -o wide --no-headers | awk '{print $7}' | head -1)
+                          NODE_PORT=$(kubectl get svc backend-svc -o jsonpath='{.spec.ports[0].nodePort}')
+
+                          echo "Node IP: $NODE_IP"
+                          echo "NodePort: $NODE_PORT"
+ 
+                          grep -v '^VITE_API_URL' .env > .env
+                          echo VITE_API_URL="http://$NODE_IP:$NODE_PORT/api" >> .env
+                          
+
+                          echo "Updated .env:"
+                          cat .env'''
+                }
+            }
+        }
+        stage('Docker Build Frontend') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        docker build -t bhagyash654/eproject:frontend  .
+                        echo "iamges for frontend"
+                        docker push bhagyash654/eproject:frontend
+                        
+                    '''
+                }
+            }
+        }
+        stage('UPDATE YAML FILES') {
+            steps {
+                dir('simple-deploy') {
+                    sh '''
+                        sed -i 's|image-name|bhagyash654/eproject:frontend|g' frontend-pod.yaml
+                        kubectl apply -f frontend-pod.yaml
+                    '''
+                }
+            }
+        }
+        stage('CHECK') {
+            steps {
+                sh '''
+                    kubectl get pods
+                    kubectl get svc
+                '''
+            }
+        }
+    }
+}
